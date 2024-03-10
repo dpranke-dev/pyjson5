@@ -35,15 +35,7 @@ def main(argv):
     )
     subp.set_defaults(func=run_coverage)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     subp = subps.add_parser('format', help='Format the source code')
-=======
-    subp = subps.add_parser('format', help='Reformat the source code.')
->>>>>>> 5151e15 (Reformat w/ Pyink.)
-=======
-    subp = subps.add_parser('format', help='Format the source code')
->>>>>>> a4fcf61 (switch to using ruff for formatting)
     subp.set_defaults(func=run_format)
 
     subp = subps.add_parser('help', help='Get help on a subcommand.')
@@ -68,15 +60,6 @@ def main(argv):
         ),
     )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    subp = subps.add_parser('lint', help='run lint over the source')
-    subp.set_defaults(func=run_lint)
-
->>>>>>> 5151e15 (Reformat w/ Pyink.)
-=======
->>>>>>> a4fcf61 (switch to using ruff for formatting)
     subp = subps.add_parser('tests', help='run the tests')
     subp.set_defaults(func=run_tests)
 
