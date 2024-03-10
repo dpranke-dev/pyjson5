@@ -89,18 +89,18 @@ def loads(s: str,
     def _fp_constant_parser(s):
         return float(s.replace('Infinity', 'inf').replace('NaN', 'nan'))
 
-    # pylint: disable=unnecessary-lambda-assignment
     if object_pairs_hook:
         dictify = object_pairs_hook
     elif object_hook:
-        dictify = lambda pairs: object_hook(dict(pairs))
+        def dictify(pairs):
+            return object_hook(dict(pairs))
     else:
         dictify = dict
 
     if not allow_duplicate_keys:
         _orig_dictify = dictify
-        dictify = lambda pairs: _reject_duplicate_keys(pairs, _orig_dictify)
-    # pylint: enable=unnecessary-lambda-assignment
+        def dictify(pairs):
+            return _reject_duplicate_keys(pairs, _orig_dictify)
 
     parse_float = parse_float or float
     parse_int = parse_int or int
@@ -348,7 +348,7 @@ def _dumps(obj, skipkeys, ensure_ascii, check_circular, allow_nan, indent,
         end_str = ''
         if trailing_commas:
             end_str = ','
-        if type(indent) == int:
+        if isinstance(indent, int):
             if indent > 0:
                 indent_str = '\n' + ' ' * indent * level
                 end_str += '\n' + ' ' * indent * (level - 1)

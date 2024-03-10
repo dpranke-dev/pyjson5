@@ -306,14 +306,14 @@ class TestDumps(unittest.TestCase):
 
     def test_check_circular(self):
         # This tests a trivial cycle.
-        l = [1, 2, 3]
-        l[2] = l
-        self.assertRaises(ValueError, json5.dumps, l)
+        obj = [1, 2, 3]
+        obj[2] = obj
+        self.assertRaises(ValueError, json5.dumps, obj)
 
         # This checks that json5 doesn't raise an error. However,
         # the underlying Python implementation likely will.
         try:
-            json5.dumps(l, check_circular=False)
+            json5.dumps(obj, check_circular=False)
             self.fail()  # pragma: no cover
         except Exception as e:
             self.assertNotIn(str(e), 'Circular reference detected')

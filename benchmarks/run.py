@@ -19,13 +19,7 @@ import os
 import sys
 import time
 
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-REPO_DIR = os.path.dirname(THIS_DIR)
-if not REPO_DIR in sys.path:
-    sys.path.insert(0, REPO_DIR)
-
-import json5  # pylint: disable=wrong-import-position
-
+import json5
 
 ALL_BENCHMARKS = (
     '64KB-min.json',
@@ -33,8 +27,9 @@ ALL_BENCHMARKS = (
     'twitter.json',
 )
 
-
 DEFAULT_ITERATIONS = 3
+
+THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 def main():
