@@ -102,7 +102,7 @@ def run_install(args):
 
 def run_lint(args):
     del args
-    call(sys.executable + ' --rcfile=pylintrc */*.py', shell=True)
+    call(sys.executable + 'pylint run */*.py', shell=True)
 
 
 def run_tests(args):
