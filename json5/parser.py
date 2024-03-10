@@ -1,4 +1,4 @@
-# pylint: disable=line-too-long,unnecessary-lambda
+# pylint: disable=line-too-long,too-many-lines,unnecessary-lambda
 
 import unicodedata
 
