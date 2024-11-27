@@ -28,7 +28,7 @@ from typing import (
 )
 import unicodedata
 
-from json5.parser import Parser
+from json5.parser import parse
 
 
 # Used when encoding keys, below.
@@ -144,10 +144,9 @@ def loads(
 
     if not s:
         raise ValueError('Empty strings are not legal JSON5')
-    parser = Parser(s, '<string>')
-    ast, err, _ = parser.parse(global_vars={'_strict': strict})
-    if err:
-        raise ValueError(err)
+    result = parse(s, '<string>', externs={'strict': strict})
+    if result.err:
+        raise ValueError(result.err)
 
     def _fp_constant_parser(s):
         return float(s.replace('Infinity', 'inf').replace('NaN', 'nan'))
@@ -171,7 +170,9 @@ def loads(
     parse_int = parse_int or int
     parse_constant = parse_constant or _fp_constant_parser
 
-    return _walk_ast(ast, dictify, parse_float, parse_int, parse_constant)
+    return _walk_ast(
+        result.val, dictify, parse_float, parse_int, parse_constant
+    )
 
 
 def _reject_duplicate_keys(pairs, dictify):

@@ -9,7 +9,11 @@ import shutil
 import subprocess
 import sys
 
-import json5
+try:
+    import json5
+    version = json5.__version__
+except ModuleNotFoundError:
+    version = '1.0.0.dev0'
 
 
 class Runner:
@@ -22,7 +26,7 @@ class Runner:
         self.run_cmd = None
         self.subps = None
         self.uv_path = None
-        self.version = json5.__version__
+        self.version = version
 
     def add_parser(self, cmd, help):  # pylint: disable=redefined-builtin
         method = getattr(self, 'run_' + cmd.replace('-', '_'))
@@ -374,9 +378,9 @@ class Runner:
         return argv[i : i + 1] + leading_args + argv[i + 1 :]
 
     def _gen_parser(self):
-        tool = '../glop/glop/tool.py'
+        tool = '../pyfloyd/src/pyfloyd/tool.py'
         if not os.path.exists(tool):
-            print('Need `glop` repo to be at ../glop.')
+            print('Need `pyfloyd` repo to be at ../pyfloyd.')
             sys.exit(1)
 
         self.call(
@@ -385,13 +389,10 @@ class Runner:
                 tool,
                 '-o',
                 self.parser_file,
-                '--no-main',
-                '--no-memoize',
                 '-c',
                 self.grammar,
             ]
         )
-        self.call(self.run_cmd + ['-m', 'ruff', 'format', self.parser_file])
 
     def _files(self):
         return (

@@ -1,130 +1,133 @@
-grammar        = sp value:v sp end                    -> v
+%whitespace    = ' '
+               | '\t'
+               | '\n'
+               | '\r'
+               | '\v'
+               | '\f'
+               | '\xa0'
+               | '\u2028'
+               | '\u2029'
+               | '\ufeff'
+               | \p{Zs}
 
-sp             = ws*
+%comment       = '//' [^\r\n]* | '/*' ^.'*/'
 
-ws             = '\u0020' | eol | comment
-               | '\u0009' | '\u000B' | '\u000C' | '\u00A0' | '\uFEFF'
-               | ~~(anything:x ?( is_unicat(x, 'Zs') )) anything:x -> x
+%tokens = ident num_literal string
 
-eol            = '\u000D' '\u000A' | '\u000D' | '\u000A'
-               | '\u2028' | '\u2029'
+%externs       = strict
 
-comment        = '//' (~eol anything)*
-               | '/*' (~'*/' anything)* '*/'
+grammar        = value end                        -> $1
 
-value          = 'null'                               -> 'None'
-               | 'true'                               -> 'True'
-               | 'false'                              -> 'False'
-               | object:v                             -> ['object', v]
-               | array:v                              -> ['array', v]
-               | string:v                             -> ['string', v]
-               | num_literal:v                        -> ['number', v]
+value          = 'null'                           -> 'None'
+               | 'true'                           -> 'True'
+               | 'false'                          -> 'False'
+               | num_literal                      -> ['number', $1]
+               | object                           -> ['object', $1]
+               | array                            -> ['array', $1]
+               | string                           -> ['string', $1]
 
-object         = '{' sp member_list:v sp '}'          -> v
-               | '{' sp '}'                           -> []
+object         = '{' member_list '}'              -> $2
+               | '{' '}'                          -> []
 
-array          = '[' sp element_list:v sp ']'         -> v
-               | '[' sp ']'                           -> []
+array          = '[' element_list ']'             -> $2
+               | '[' ']'                          -> []
 
-string         = squote sqchar*:cs squote             -> join('', cs)
-               | dquote dqchar*:cs dquote             -> join('', cs)
+string         = squote sqchar* squote            -> cat($2)
+               | dquote dqchar* dquote            -> cat($2)
 
-sqchar         = bslash esc_char:c                    -> c
-               | bslash eol                           -> ''
-               | ~bslash ~squote ~eol anything:c      -> c
-               | ~?(_strict) '\x00'..'\x1f'
+sqchar         = bslash esc_char                  -> $2
+               | bslash eol                       -> ''
+               | ~bslash ~squote ~eol any         -> $4
+               | ?{ !strict } '\x00'..'\x1f'
 
-dqchar         = bslash esc_char:c                    -> c
-               | bslash eol                           -> ''
-               | ~bslash ~dquote ~eol anything:c      -> c
-               | ~?( _strict ) '\x00'..'\x1f'
+dqchar         = bslash esc_char                  -> $2
+               | bslash eol                       -> ''
+               | ~bslash ~dquote ~eol any         -> $4
+               | ?{ !strict } '\x00'..'\x1f'
 
-bslash         = '\u005C'
+bslash         = '\\'
 
-squote         = '\u0027'
+squote         = "'"
 
-dquote         = '\u0022'
+dquote         = '"'
 
-esc_char       = 'b'                                 -> '\u0008'
-               | 'f'                                 -> '\u000C'
-               | 'n'                                 -> '\u000A'
-               | 'r'                                 -> '\u000D'
-               | 't'                                 -> '\u0009'
-               | 'v'                                 -> '\u000B'
-               | squote                              -> '\u0027'
-               | dquote                              -> '\u0022'
-               | bslash                              -> '\u005C'
-               | ~('x'|'u'|digit|eol) anything:c     -> c
-               | '0' ~digit                          -> '\u0000'
-               | hex_esc:c                           -> c
-               | unicode_esc:c                       -> c
+eol            = '\r' '\n'
+               | '\r'
+               | '\n'
+               | '\u2028'
+               | '\u2029'
 
-hex_esc        = 'x' hex:h1 hex:h2                   -> xtou(h1 + h2)
+esc_char       = 'b'                              -> '\b'
+               | 'f'                              -> '\f'
+               | 'n'                              -> '\n'
+               | 'r'                              -> '\r'
+               | 't'                              -> '\t'
+               | 'v'                              -> '\v'
+               | squote                           -> "'"
+               | dquote                           -> '"'
+               | bslash                           -> '\\'
+               | ~('x' | 'u' | digit | eol) any   -> $2
+               | '0' ~digit                       -> '\x00'
+               | hex_esc
+               | unicode_esc
 
-unicode_esc    = 'u' hex:a hex:b hex:c hex:d         -> xtou(a + b + c + d)
+hex_esc        = 'x' hex{2}                       -> xtou(cat($2))
 
-element_list   = value:v (sp ',' sp value)*:vs sp ','?   -> [v] + vs
+unicode_esc    = 'u' hex{4}                       -> xtou(cat($2))
 
-member_list    = member:m (sp ',' sp member)*:ms sp ','? -> [m] + ms
+element_list   = value (',' value)* ','?          -> cons($1, $2)
 
-member         = string:k sp ':' sp value:v          -> [k, v]
-               | ident:k sp ':' sp value:v           -> [k, v]
+member_list    = member (',' member)* ','?        -> cons($1, $2)
 
-ident          = id_start:hd id_continue*:tl         -> join('', [hd] + tl)
+member         = string ':' value                 -> [$1, $3]
+               | ident ':' value                  -> [$1, $3]
+
+ident          = id_start id_continue*            -> cat(cons($1, $2))
 
 id_start       = ascii_id_start
                | other_id_start
                | bslash unicode_esc
 
-ascii_id_start = 'a'..'z'
-               | 'A'..'Z'
-               | '$'
-               | '_'
+ascii_id_start = 'a'..'z' | 'A'..'Z' | '$' | '_'
 
-other_id_start = anything:x ?(is_unicat(x, 'Ll'))    -> x
-               | anything:x ?(is_unicat(x, 'Lm'))    -> x
-               | anything:x ?(is_unicat(x, 'Lo'))    -> x
-               | anything:x ?(is_unicat(x, 'Lt'))    -> x
-               | anything:x ?(is_unicat(x, 'Lu'))    -> x
-               | anything:x ?(is_unicat(x, 'Nl'))    -> x
+other_id_start = \p{Ll}
+               | \p{Lm}
+               | \p{Lo}
+               | \p{Lt}
+               | \p{Lu}
+               | \p{Nl}
 
 id_continue    = ascii_id_start
                | digit
                | other_id_start
-               | anything:x ?(is_unicat(x, 'Mn'))    -> x
-               | anything:x ?(is_unicat(x, 'Mc'))    -> x
-               | anything:x ?(is_unicat(x, 'Nd'))    -> x
-               | anything:x ?(is_unicat(x, 'Pc'))    -> x
+               | \p{Mn}
+               | \p{Mc}
+               | \p{Nd}
+               | \p{Pc}
                | bslash unicode_esc
-               | '\u200C'
-               | '\u200D'
+               | '\u200c'
+               | '\u200d'
 
-num_literal    = '-' num_literal:n                   -> '-' + n
-               | '+' num_literal:n                   -> n
-               | dec_literal:d ~id_start             -> d
-               | hex_literal
-               | 'Infinity'
-               | 'NaN'
+num_literal    = '-' num_literal                  -> strcat('-', $2)
+               | '+' num_literal                  -> $2
+               | dec_literal ~id_start            -> $1
+               | hex_literal                      -> $1
+               | 'Infinity'                       -> 'Infinity'
+               | 'NaN'                            -> 'NaN'
 
-dec_literal    = dec_int_lit:d frac:f exp:e          -> d + f + e
-               | dec_int_lit:d frac:f                -> d + f
-               | dec_int_lit:d exp:e                 -> d + e
-               | dec_int_lit:d                       -> d
-               | frac:f exp:e                        -> f + e
-               | frac:f                              -> f
+dec_literal    = <dec_int_lit frac? exp?>
+               | <frac exp?>
 
-dec_int_lit    = '0' ~digit                          -> '0'
-               | nonzerodigit:d digit*:ds            -> d + join('', ds)
+dec_int_lit    = '0' ~digit | nonzerodigit digit*
 
 digit          = '0'..'9'
 
 nonzerodigit   = '1'..'9'
 
-hex_literal    = ('0x' | '0X') hex+:hs               -> '0x' + join('', hs)
+hex_literal    = ('0x' | '0X') hex+               -> strcat('0x', cat($2))
 
 hex            = 'a'..'f' | 'A'..'F' | digit
 
-frac           = '.' digit*:ds                       -> '.' + join('', ds)
+frac           = '.' digit+
 
-exp            = ('e' | 'E') ('+' | '-'):s digit*:ds -> 'e' + s + join('', ds)
-               | ('e' | 'E') digit*:ds               -> 'e' + join('', ds)
+exp            = ('e' | 'E') ('+' | '-')? digit+

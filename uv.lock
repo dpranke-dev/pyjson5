@@ -407,7 +407,7 @@ wheels = [
 
 [[package]]
 name = "json5"
-version = "0.9.29.dev0"
+version = "0.10.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
